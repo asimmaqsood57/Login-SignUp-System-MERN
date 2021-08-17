@@ -1,8 +1,12 @@
 const express = require("express");
 
+require("dotenv").config();
 const mongoose = require("mongoose");
 const userModel = require("./models/Users");
 
+const jwt = require("jsonwebtoken");
+
+const auth = require("./middleware/auth");
 const passwordHash = require("password-hash");
 const cors = require("cors");
 const app = express();
@@ -38,25 +42,55 @@ app.post("/signup", async (req, res) => {
 
   const hashedPassword = passwordHash.generate(password);
 
-  const user = new userModel({
+  const user = await userModel.create({
     fullName: fullName,
     email: email,
     password: hashedPassword,
   });
 
-  try {
-    await user
-      .save()
-      .then(() => {
-        console.log("Record is inserted successfully");
-        res.send("Record is inserted successfully");
-      })
-      .catch((err) => {
-        console.log("Something went wrong due to : ", err);
-      });
-  } catch (error) {
-    console.log(error);
+  const token = jwt.sign(
+    {
+      user_id: user._id,
+      email,
+    },
+    process.env.TOKEN_KEY,
+    { expiresIn: "2h" }
+  );
+
+  user.token = token;
+  res.status(201).json(user);
+});
+
+app.post("/login", async (req, res) => {
+  const { email, password } = req.body;
+
+  console.log(email, password);
+  const user = await userModel.findOne({ email });
+
+  console.log(user.email);
+  if (user && passwordHash.verify(password, user.password)) {
+    console.log("this is if");
+
+    const token = jwt.sign(
+      {
+        user_id: user._id,
+        email,
+      },
+      process.env.TOKEN_KEY,
+      {
+        expiresIn: "2h",
+      }
+    );
+
+    user.token = token;
+
+    res.status(200).json(user);
   }
+  res.status(400).send("invalid  credentials");
+});
+
+app.post("/welcome", auth, (req, res) => {
+  res.status(200).send("Welcome");
 });
 
 app.listen(PORT, () => {
