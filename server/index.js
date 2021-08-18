@@ -41,7 +41,6 @@ app.post("/signup", async (req, res) => {
   const password = req.body.password;
 
   const hashedPassword = passwordHash.generate(password);
-
   const user = await userModel.create({
     fullName: fullName,
     email: email,
@@ -56,7 +55,6 @@ app.post("/signup", async (req, res) => {
     process.env.TOKEN_KEY,
     { expiresIn: "2h" }
   );
-
   user.token = token;
   res.status(201).json(user);
 });
@@ -64,7 +62,7 @@ app.post("/signup", async (req, res) => {
 app.post("/login", async (req, res) => {
   const { email, password } = req.body;
 
-  console.log(email, password);
+  //   console.log(email, password);
   const user = await userModel.findOne({ email });
 
   console.log(user.email);
